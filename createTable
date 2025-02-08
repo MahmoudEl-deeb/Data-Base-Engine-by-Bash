@@ -1,0 +1,192 @@
+#!/bin/bash
+
+# Function to create a table
+
+create_table() {
+    # Set database path (use default if not provided)
+    DB_PATH=$1
+
+    # Ensure the database directory exists
+    mkdir -p "$DB_PATH/Metadata" || { echo "Error: Cannot create metadata directory."; exit 1; }
+
+    # Validate table name
+    while true; do
+        read -p "Enter table name: " name
+        if [[ "$name" == $'\e' ]]; then
+            echo "Exiting..."
+            exit 0
+        fi
+        if [[ $name =~ ^[a-z][a-zA-Z0-9_]*$ ]]; then
+            break
+        else
+            echo "Invalid name! Table name must:"
+            echo "   - Start with a lowercase letter."
+            echo "   - Contain only letters, numbers, and underscores (_)."
+        fi
+    done
+
+    # Check if table already exists
+    if [[ -f "$DB_PATH/$name" ]]; then
+        echo "Error: Table '$name' already exists. Please choose another name."
+        exit 1
+    fi
+
+    # Create table and metadata files
+    touch "$DB_PATH/$name"
+    touch "$DB_PATH/Metadata/$name.metadata"
+    echo "Table '$name' has been created successfully."
+
+    # Validate number of columns
+    while true; do
+        read -p "Enter number of columns: " num
+        if [[ "$num" == $'\e' ]]; then
+            echo "Exiting..."
+            exit 0
+        fi
+        if [[ $num =~ ^[1-9][0-9]*$ ]]; then
+            break
+        else
+            echo "Invalid input! Please enter a valid positive number."
+        fi
+    done
+
+    # Add columns
+    flag=true
+    for ((i=0; i<num; i++)); do
+        while true; do
+            read -p "Enter column name: " colname
+            if [[ "$colname" == $'\e' ]]; then
+                echo "Exiting..."
+                exit 0
+            fi
+            if [[ "$colname" =~ ^[a-z][a-zA-Z0-9_]*$ ]]; then
+                # Check if column already exists in metadata
+                if grep -qF "$colname" "$DB_PATH/Metadata/$name.metadata"; then
+                    echo "Error: Column '$colname' already exists. Please enter another name."
+                else
+                    break
+                fi
+            else
+                echo "Invalid name! Column name must start with a lowercase letter and contain only letters, numbers, and underscores."
+            fi
+        done
+
+        # Choose column datatype
+        while true; do
+            read -p "Choose column's datatype String(s) or Number(n): (s/n): " colDataType
+            if [[ "$colDataType" == $'\e' ]]; then
+                echo "Exiting..."
+                exit 0
+            fi
+            if [[ "$colDataType" =~ ^[sS]$ ]]; then
+                colMetadata="$colname:string"
+                break
+            elif [[ "$colDataType" =~ ^[nN]$ ]]; then
+                colMetadata="$colname:number"
+                break
+            else
+                echo "Invalid data type! Please enter 's' for string or 'n' for number."
+            fi
+        done
+
+        # Assign primary key
+        if [[ "$flag" == true ]]; then
+            while true; do
+                read -p "Is this column a Primary Key (PK)? (y/n): " pk
+                if [[ "$pk" == $'\e' ]]; then
+                    echo "Exiting..."
+                    exit 0
+                fi
+                if [[ "$pk" =~ ^[yY]$ ]]; then
+                    colMetadata="$colMetadata:yes"
+                    flag=false
+                    break
+                elif [[ "$pk" =~ ^[nN]$ ]]; then
+                    colMetadata="$colMetadata:no"
+                    break
+                else
+                    echo "Invalid input! Please enter 'y' for yes or 'n' for no."
+                fi
+            done
+        else
+            colMetadata="$colMetadata:no"
+        fi
+
+        # Save column metadata
+        echo "$colMetadata" >> "$DB_PATH/Metadata/$name.metadata"
+    done
+
+    echo "Table '$name' with $num columns has been created successfully."
+}
+
+# Function to select a table
+select_table() {
+    # Set database path (use default if not provided)
+    if [[ -z "$1" ]]; then
+        echo "Warning: No database path provided. Using default path: ./Databases"
+        DB_PATH="./Databases"
+    else
+        DB_PATH="$1"
+    fi
+
+    read -p "Enter the name of the table you want to display: " tablename
+
+    if [[ "$tablename" == $'\e' ]]; then
+        echo "Exiting..."
+        exit 0
+    fi
+
+    if [[ -f "$DB_PATH/$tablename" ]]; then
+        echo "Table exists."
+    else
+        echo "Table doesn't exist."
+        exit 0
+    fi
+
+    menuoptions=()
+    optionnum=$(wc -l < "$DB_PATH/Metadata/$tablename.metadata")
+
+    for ((i=1; i<=optionnum; i++)); do
+        menuoptions[i]=$(awk -F ":" -v line="$i" 'NR == line { print $1 }' "$DB_PATH/Metadata/$tablename.metadata")
+    done
+
+    while true; do
+        echo
+        echo "=============================================="
+        echo "          Display Table: $tablename"
+        echo "=============================================="
+        echo "1. Select All"
+        for ((i=1; i<=optionnum; i++)); do
+            echo "$((i+1)). Select ${menuoptions[i]}"
+        done
+        echo "$((optionnum+2)). Exit"
+
+        read -p "Please choose what you want to select: " choice
+        case $choice in
+            1)
+                tablehead=$(awk -F ":" '{ tablehead = tablehead " " $1 } END { print tablehead }' < "$DB_PATH/Metadata/$tablename.metadata")
+                tablecontent=$(awk -F ":" '{ for(i = 1; i <= NF; i++) { if (i == NF) { tablecontent = tablecontent " " $i "\n" } else { tablecontent = tablecontent " " $i } } } END { print tablecontent }' < "$DB_PATH/$tablename")
+                echo "$tablehead"
+                echo "$tablecontent"
+                ;;
+            [2-$((optionnum+1))])
+                targetcolumn=$((choice-1))
+                primaryindex=$(awk -F ":" '$3 == "yes" {print NR}' "$DB_PATH/Metadata/$tablename.metadata")
+                primaryname=$(awk -F ":" -v idx="$primaryindex" 'NR == idx {print $1}' "$DB_PATH/Metadata/$tablename.metadata")
+                targetname=$(awk -F ":" -v idx="$targetcolumn" 'NR == idx {print $1}' "$DB_PATH/Metadata/$tablename.metadata")
+                tablehead="$primaryname $targetname"
+                primarydata=$(awk -F ":" -v idx="$primaryindex" '{print $idx}' "$DB_PATH/$tablename")
+                targetdata=$(awk -F ":" -v idx="$targetcolumn" '{print $idx}' "$DB_PATH/$tablename")
+                echo -e "$tablehead\n$primarydata $targetdata"
+                ;;
+            $((optionnum+2)))
+                echo "Exiting..."
+                exit 0
+                ;;
+            *)
+                echo "Invalid choice, please try again."
+                ;;
+        esac
+    done
+}
+

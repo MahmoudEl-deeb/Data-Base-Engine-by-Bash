@@ -1,0 +1,68 @@
+#!/bin/bash
+
+source /usr/local/bin/createDatabase 
+source /usr/local/bin/tableMenu
+
+showMenu(){
+	echo
+	echo "===================================="
+        echo "Database Menu"
+        echo "===================================="
+        echo "1. Create New Database"
+        echo "2. List Databases"
+        echo "3. Delete Database"
+        echo "4. Connect Database"
+        echo "5. Exit"
+        echo "===================================="
+	read -p "Enter your choice (1...5) : " choice
+	        case $choice in
+                1)
+                        create_database
+                        ;;
+                2)
+			files=$(ls -F "$PWD/AHMR_DATABASE_ENGINE")
+                       echo $files
+
+                        ;;
+                3)
+                	 			
+          		  read -p "Enter the name of database: " delDatabase
+
+		            if [[ "$delDatabase" =~ ^[a-zA-Z][a-zA-Z0-9_]+$ ]]; then
+               			 dbPath="$PWD/AHMR_DATABASE_ENGINE/$delDatabase"
+                
+               			 if [ -d "$dbPath" ]; then
+                  			  rm -r "$dbPath"
+                 			   echo "Deleting database '$delDatabase'..."
+                  			   sleep 2
+                   			   echo "Database '$delDatabase' deleted successfully."
+               			 else
+                 			   echo "Database '$delDatabase' does not exist."
+                		fi
+          			  else
+            				    echo "Invalid database name. Only alphanumeric characters and underscores are allowed."
+            			fi
+           			 ;;
+	        
+		4) 
+                   	clear 
+			echo "---------------------------------------------"
+			read -p "Enter the Database which you want to connect it : " database_name
+			
+			if [[ -d ./AHMR_DATABASE_ENGINE/$database_name ]]; then
+				dbconnect=./AHMR_DATABASE_ENGINE/$database_name
+
+				showTableMenu $dbconnect
+			else
+				echo "database not found "	
+			fi
+			;;
+                5)
+                        echo "Exit"
+                        exit 0
+                        ;;
+                *)
+                        echo "Invalied value"
+                        ;;
+                esac
+}

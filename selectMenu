@@ -1,0 +1,94 @@
+#!/bin/bash
+
+select_table() {
+    read -p "Enter the name of the table you want to display: " tablename
+
+    if [[ "$tablename" == $'\e' ]]; then
+        echo "Exiting..."
+        exit 0
+    fi
+
+    # Ensure the database path is provided
+    if [[ -z "$1" ]]; then
+        echo "Error: Database path not provided."
+        exit 1
+    fi
+
+    database_path="$1"
+
+    if [[ ! -f "$1/$tablename" ]]; then
+        echo "Table doesn't exist."
+        exit 0
+    fi
+
+    # Read metadata to get column names
+    metadata_file="$1/Metadata/$tablename.metadata"
+    if [[ ! -f "$metadata_file" ]]; then
+        echo "Metadata file not found!"
+        exit 1
+    fi
+
+    # Read column names into an array
+    menuoptions=()
+    optionnum=$(awk 'END {print NR}' "$metadata_file")
+
+    for ((i = 1; i <= optionnum; i++)); do
+        menuoptions[i]=$(awk -F ":" -v line="$i" 'NR == line { print $1 }' "$metadata_file")
+    done
+
+    while true; do
+        echo
+        echo "=============================================="
+        echo "          Display Table: $tablename"
+        echo "=============================================="
+        echo "1. Select All"
+
+        for ((i = 1; i <= optionnum; i++)); do
+            echo "$((i + 1)). Select ${menuoptions[i]}"
+        done
+
+        echo "$((optionnum + 2)). Exit"
+        read -p "Please choose an option: " choice
+
+        if [[ "$choice" =~ ^[0-9]+$ ]]; then
+            if ((choice == 1)); then
+                # Print table headers
+                tablehead=$(awk -F ":" '{ for(i = 1; i <= NF; i++) printf "%s ", $i; print "" }' "$metadata_file")
+
+                # Print table content
+                tablecontent=$(awk -F ":" '{ for(i = 1; i <= NF; i++) printf "%s ", $i; print "" }' "$database_path/$tablename")
+
+                echo -e "$tablehead\n$tablecontent"
+
+            elif ((choice >= 2 && choice <= optionnum + 1)); then
+                targetcolumn=$((choice - 1))
+                primaryindex=$(awk -F ":" '$3 == "yes" {print NR}' "$metadata_file")
+
+                if [[ -z "$primaryindex" ]]; then
+                    echo "Primary key not found."
+                    exit 1
+                fi
+
+                primaryname=$(awk -F ":" -v idx="$primaryindex" 'NR == idx {print $1}' "$metadata_file")
+                targetname="${menuoptions[targetcolumn]}"
+
+                tablehead="$primaryname $targetname"
+                primarydata=$(awk -F ":" -v idx="$primaryindex" '{print $idx}' "$database_path/$tablename")
+                targetdata=$(awk -F ":" -v idx="$targetcolumn" '{print $idx}' "$database_path/$tablename")
+
+                echo -e "$tablehead\n$primarydata $targetdata"
+
+            elif ((choice == optionnum + 2)); then
+                echo "Exiting..."
+                exit 0
+            else
+                echo "Invalid choice, please try again."
+            fi
+        else
+            echo "Invalid input. Please enter a number."
+        fi
+    done
+}
+
+# Example usage
+# select_table "/path/to/database"

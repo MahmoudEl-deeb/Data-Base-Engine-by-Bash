@@ -1,0 +1,69 @@
+#!/bin/bash
+#source /usr/local/bin/menu  
+source /usr/local/bin/createTable
+source /usr/local/bin/delTable
+source /usr/local/bin/delOptions
+source /usr/local/bin/inTable
+source /usr/local/bin/selectMenu
+source /usr/local/bin/updateTable
+source /usr/local/bin/tableInsert
+showTableMenu(){
+    while true; do
+        echo
+        echo "===================================="
+        echo "Table Menu"
+        echo "===================================="
+        echo "1. Create New Table"
+        echo "2. List Tables"
+        echo "3. Insert into Tables"
+        echo "4. Select from Tables"
+        echo "5. Update Tables"
+        echo "6. Delete from Tables"
+        echo "7. Drop Tables"
+        echo "8. Back to Main Menu"
+        echo "===================================="
+	
+	read -p "Enter your choice (1...8): " choice
+	echo $1
+
+        case $choice in
+            1)
+		create_table $i 
+                echo "Creating a new table..."
+                ;;
+            2)
+                 files=$(ls -p "$PWD/$1" | grep -v /)
+		echo $files 
+                ;;
+            3)
+		    
+		    echo $1
+		    insert_table $1
+                ;;
+            4)
+                select_table  $1
+	
+                ;;
+            5)
+                update_table $1
+                ;;
+            6)
+		    deleteOption $1
+                ;;
+            7)
+                drop_table $1
+                ;;
+            8)
+               showMenu
+                break
+                ;;
+            *)
+                echo "Invalid choice. Please enter a number between 1 and 8."
+                ;;
+        esac
+
+        read -p "Press Enter to continue..."
+    done
+}
+
+

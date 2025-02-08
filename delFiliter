@@ -1,0 +1,24 @@
+#!/bin/bash
+
+del_filiter(){
+	input_file=$1
+	column_name=$2
+	operator=$3
+	value=$4
+	echo $1
+	echo $2
+	echo $3
+	echo $4
+	cat $1
+	echo "--------------------------------------------------------------------------"
+column_index=$(head -1 "$input_file" | awk -F'[[:space:]]+' -v col="$column_name" '{for(i=1;i<=NF;i++)if($i==col){print i;exit;}}')
+
+	echo  $column_index 
+	if [[ -z "$column_index" ]]; then
+		echo "invalid value"
+		return 1 
+	fi
+awk -F'[[:space:]]+' -v col="$column_index" -v op="$operator" -v val="$value" 'NR==1||(op=="="&&$col==val)||(op=="!="&&$col!=val)||(op==">"&&$col+0>val+0)||(op=="<"&&$col+0<val+0)||(op==">="&&$col+0>=val+0)||(op=="<="&&$col+0<=val+0){print}' "$input_file" >temp_file&&mv temp_file "$input_file"
+
+ 	cat $input_file
+}

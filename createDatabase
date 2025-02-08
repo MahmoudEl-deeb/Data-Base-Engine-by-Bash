@@ -1,0 +1,48 @@
+#!/bin/bash
+
+validate_total() {
+validate_data() {
+
+        echo "please enter data"
+        read data
+        if [[ "$data" == $'\e' ]]; then
+                echo "Exiting..."
+                exit 0
+            fi
+        if [[ $data =~ ^[a-z]+[a-zA-Z0-9_]+$ ]]; then
+        echo "Valid data"
+        return 0
+    else
+        echo "invalid data: your data should start with lower case and includes only lower case, upper case, numbers and _"
+        return 1
+    fi
+}
+a=1
+while [[ $a != 0 ]];  do
+validate_data
+a=$?
+done
+}
+
+
+create_database() {
+search_folder() {
+        validate_total
+        echo "enter the name of database"
+        read folder
+        if [[ -e ./AHMR_DATABASE_ENGINE/$folder ]]; then
+                echo "folder is exist"
+                return 1
+        else
+                echo "new database is created"
+                mkdir ./AHMR_DATABASE_ENGINE/$folder
+                return 0
+        fi
+}
+b=1
+while [[ $b != 0 ]];  do
+search_folder
+b=$?
+done
+}
+

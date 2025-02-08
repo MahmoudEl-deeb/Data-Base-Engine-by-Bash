@@ -1,0 +1,111 @@
+showTableMenu(){
+        while true; do
+        echo
+        echo "===================================="
+        echo "Table Menu"
+        echo "===================================="
+        echo "1. Create New Table"
+        echo "2. List Tables"
+        echo "3. Insert in Tables"
+        echo "4. Select from Tables"
+        echo "5. Update Tables"
+        echo "6. Delete from Tables"
+        echo "7. Drop  Tables"
+        echo "8. Back To Main Menu"
+        echo "===================================="
+         read -p "Enter your choice (1...8): " choice
+
+    case $choice in
+        1)
+
+	echo " createTable"
+            ;;
+        2)
+          echo "listTables"
+            ;;
+        3)
+          echo " insertIntoTable"
+            ;;
+        4)
+           echo " selectFromTable"
+            ;;
+        5)
+           echo " updateTable"
+            ;;
+        6)
+           echo " deleteFromTable"
+            ;;
+        7)
+          echo " dropTable"
+            ;;
+        8)
+            showMenu
+            break
+            ;;
+        *)
+            echo "Invalid choice. Please enter a number between 1 and 8."
+            ;;
+    esac
+      read -p "Press Enter to continue..."
+  done
+}
+----------------------------------------------------------------
+#!/bin/bash
+
+#source /usr/local/bin/createDatabase 
+source /usr/local/bin/tableMenu
+
+showMenu(){
+        echo
+        echo "===================================="
+        echo "Database Menu"
+        echo "===================================="
+        echo "1. Create New Database"
+        echo "2. List Databases"
+        echo "3. Delete Database"
+        echo "4. Connect Database"
+        echo "5. Exit"
+        echo "===================================="
+        read -p "Enter your choice (1...5) : " choice
+                case $choice in
+                1)
+                        create_database
+                        ;;
+                2)
+                        files=$(ls -F "$PWD/AHMR_DATABASE_ENGINE")
+                       echo $files
+
+                        ;;
+                3)
+
+                          read -p "Enter the name of database: " delDatabase
+
+                            if [[ "$delDatabase" =~ ^[a-zA-Z][a-zA-Z0-9_]+$ ]]; then
+                                 dbPath="$PWD/AHMR_DATABASE_ENGINE/$delDatabase"
+
+                                 if [ -d "$dbPath" ]; then
+                                          rm -r "$dbPath"
+                                           echo "Deleting database '$delDatabase'..."
+                                           sleep 2
+                                           echo "Database '$delDatabase' deleted successfully."
+                                 else
+                                           echo "Database '$delDatabase' does not exist."
+                                fi
+                                  else
+                                            echo "Invalid database name. Only alphanumeric characters and underscores are allowed."
+                                fi
+                                 ;;
+
+                4)
+                        showTableMenu
+                        ;;
+                5)
+                        echo "Exit"
+                        exit 0
+                        ;;
+                *)
+                        echo "Invalied value"
+                        ;;
+                esac
+}
+

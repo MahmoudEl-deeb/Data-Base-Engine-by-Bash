@@ -1,0 +1,102 @@
+#!/bin/bash
+
+update_table() {
+    read -p "Enter the pattern (table name, column name, column value): " tablename key colvalue
+
+    # Check if the table exists
+    if [[ ! -f "$1/$tablename" ]]; then
+        echo "Table '$tablename' does not exist."
+        exit 1
+    fi
+
+    # Check if the metadata file exists
+    metadata_file="$1/Metadata/$tablename.metadata"
+    if [[ ! -f "$metadata_file" ]]; then
+        echo "Metadata file for '$tablename' not found."
+        exit 1
+    fi
+
+    # Find the column index for the search key in the metadata file
+    keyindex=$(awk -F ":" -v mark="$key" '$1 == mark {print NR}' "$metadata_file")
+
+    if [[ -z "$keyindex" ]]; then
+        echo "Column '$key' not found in metadata."
+        exit 1
+    fi
+
+    # Find records matching the search value in the table file
+    targetrecords=($(awk -v keyindex="$keyindex" -v value="$colvalue" -F ":" '{
+        if ($keyindex == value) { print NR }
+    }' "$1/$tablename"))
+
+    if [[ ${#targetrecords[@]} -eq 0 ]]; then
+        echo "No matching record found for value '$colvalue'."
+        exit 1
+    else
+        echo "Records found at lines: ${targetrecords[@]}"
+    fi
+
+    # Read metadata to get column details
+    IFS=$'\n' read -d '' -r -a lines < "$metadata_file"
+    newRecord=""
+
+    # Prompt for new values for each column
+    for i in "${!lines[@]}"; do
+        IFS=':' read -r -a column <<< "${lines[i]}"
+        colName=${column[0]}
+        colDataType=${column[1]}
+        colPK=${column[2]}
+
+        numRegex='^[0-9]+$'
+        strRegex='^[a-zA-Z ]+$'
+
+        while true; do
+            read -p "Enter new value for $colName: " newColValue
+
+            if [[ "$newColValue" == $'\e' ]]; then
+                echo "Exiting..."
+                exit 0
+            fi
+
+            if [[ $colDataType == "number" && "$newColValue" =~ $numRegex ]]; then
+                break
+            elif [[ $colDataType == "string" && "$newColValue" =~ $strRegex ]]; then
+                break
+            else
+                echo "Invalid data type for $colName. Please try again."
+            fi
+        done
+
+        # Validate primary key uniqueness
+        if [[ $colPK == "yes" ]]; then
+            IFS=$'\n' read -d '' -r -a dataLines < "$1/$tablename"
+            for j in "${!dataLines[@]}"; do
+                IFS=':' read -r -a record <<< "${dataLines[$j]}"
+                if [[ ${record[i]} == $newColValue ]]; then
+                    echo "ERROR: Primary key must be unique."
+                    exit 1
+                fi
+            done
+        fi
+
+        # Build the new record
+        if [[ $i == 0 ]]; then
+            newRecord=$newColValue
+        else
+            newRecord="$newRecord:$newColValue"
+        fi
+    done
+
+    # Update the target records
+    for target in "${targetrecords[@]}"; do
+        awk -v target="$target" -v newRecord="$newRecord" -F ":" '{
+            if (NR == target) { $0 = newRecord }
+            print $0
+        }' "$1/$tablename" > temp_file && mv temp_file "$1/$tablename"
+    done
+
+    echo "Record(s) updated successfully."
+}
+
+# Example usage
+# update_table "/path/to/database"

@@ -1,0 +1,26 @@
+#!/bin/bash
+
+drop_table(){
+	lotable="$1"
+	while true; do
+	        read -p "Enter table name to delete  or (write exit): " tableName
+		if [[ "$tableName" == "exit" ]];then
+			echo "Exit";
+			break;
+		fi
+			if [[ "$tableName" =~ ^[a-z][a-zA-Z0-9_]*$ ]]; then
+
+			if [[  -f "$lotable/$tableName" ]]; then
+				rm  "$lotable/$tableName"
+				rm "$lotable/Metadata/$tableName.metadata"
+				sleep 2
+				echo "$tableName is deleted "
+
+			else
+				echo "$tableName not founded"
+			fi
+		else
+			echo "table name must not contain any special character or space or not start with number"
+		fi		
+	done
+}

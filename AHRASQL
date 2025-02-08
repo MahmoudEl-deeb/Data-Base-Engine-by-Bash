@@ -1,0 +1,29 @@
+#!/bin/bash
+source /usr/local/bin/menu 
+AHRASQL(){
+        if [[ "$1" == "-u" && "$2" == "root" && "$3" == "-p" ]]; then
+               
+	       	read -s -p "Enter root password : " password
+                echo 
+	       	if [[ "$password" == "123" ]]; then
+                        Database_Engine="$PWD/AHMR_DATABASE_ENGINE"
+                        if [[ ! -d "$Database_Engine" ]]; then
+				mkdir "$Database_Engine"
+			        	
+			fi
+			showMenu
+                else
+                        echo "Authentication Failed"
+                        exit 1
+                fi
+        else
+                echo "This command not appectable try to use *AHRASQL -u root -p * " ;
+                exit 1
+        fi
+}
+if [[ $# -eq 3 ]]; then
+	AHRASQL "$1" "$2" "$3"
+else 
+	echo "NUMBER OF ARGUMENT MUST BE THREE"
+	exit 1 
+fi
